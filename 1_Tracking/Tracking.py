@@ -3,6 +3,7 @@
 # pip install opencv-contrib-python
 
 import cv2
+import mosse
 
 trackers = {
     'csrt': cv2.TrackerCSRT.create,
@@ -11,11 +12,15 @@ trackers = {
     'mosse': cv2.legacy.TrackerMOSSE.create,
     'mil': cv2.TrackerMIL.create,
     'tld': cv2.legacy.TrackerTLD.create,
-    'boosting': cv2.legacy.TrackerBoosting.create
+    'boosting': cv2.legacy.TrackerBoosting.create,
+
+    'our_mosse': mosse.Mosse  # реализация алгоритма MOSSE
 }
 
+videos = ['sidewalk', 'bulldog', 'car', 'race_car', 'ants']
+
 # Настройки
-name = 'race_car'
+name = videos[0]
 path = f'videos/{name}.mp4'
 tracker_selection = 'csrt'
 reset_tracker_on_fail = False
