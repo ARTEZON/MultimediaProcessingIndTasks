@@ -5,18 +5,20 @@ from webcam import Webcam
 import scenes
 
 
-START_FULLSCREEN = True
-WIDTH, HEIGHT = 1280, 720
+START_FULLSCREEN = False
+WIDTH, HEIGHT = 1200, 900
 MAX_FPS = 60
 
-GOD_MODE = False
+MIRROR_CAMERA = True
+GOD_MODE = True
+TRACKING_MODE = 'mosse'  # canny, diff, mosse
 
 CANNY_THRESHOLD_LOW = 30
 CANNY_THRESHOLD_HIGH = 60
 CANNY_PREPROCESS_BLUR_KERNEL_SIZE = 11
-CANNY_DILATE_EDGES = 15
+CANNY_DILATE_EDGES = 5  # 25
+CANNY_ERODE_EDGES = 0  # 10
 
-DIFF_MODE = False  # use absdiff instead of canny
 DIFF_THRESHOLD = 32
 
 
@@ -25,6 +27,7 @@ class Game:
         pygame.init()
         self.window = Window(WIDTH, HEIGHT, START_FULLSCREEN, 'Popping Bubbles!')
         self.display = self.window.display
+        self.tracking_mode = TRACKING_MODE
         self.webcam = None
         self.webcam_connect(0)
         self.scene = scenes.MainMenu(self, self.webcam)
@@ -42,7 +45,7 @@ class Game:
         pygame.quit()
 
     def webcam_connect(self, camera_id):
-        self.webcam = Webcam(camera_id, CANNY_THRESHOLD_LOW, CANNY_THRESHOLD_HIGH, CANNY_PREPROCESS_BLUR_KERNEL_SIZE, CANNY_DILATE_EDGES, DIFF_MODE, DIFF_THRESHOLD)
+        self.webcam = Webcam(self, camera_id, MIRROR_CAMERA, CANNY_THRESHOLD_LOW, CANNY_THRESHOLD_HIGH, CANNY_PREPROCESS_BLUR_KERNEL_SIZE, CANNY_DILATE_EDGES, CANNY_ERODE_EDGES, DIFF_THRESHOLD)
 
     def webcam_disconnect(self):
         self.webcam = None

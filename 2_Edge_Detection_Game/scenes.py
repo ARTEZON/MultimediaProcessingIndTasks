@@ -48,7 +48,10 @@ class MainMenu(Scene):
 
     def process_key(self, key):
         if key == pygame.K_SPACE:
-            self.game.scene = Gameplay(self.game, self.webcam)
+            if self.game.tracking_mode in ['canny', 'diff']:
+                self.game.scene = Gameplay(self.game, self.webcam)
+            elif self.game.tracking_mode == 'mosse':
+                self.game.scene = Point2DSelection(self.game, self.webcam)
         elif key == pygame.K_ESCAPE:
             self.game.run = False
 
@@ -86,7 +89,7 @@ class Gameplay(Scene):
     def update(self):
         self.window.display.fill((0, 0, 0))
         self.webcam.next_frame()
-        self.camera_image = self.webcam.get_image(edges=self.display_edges)
+        self.camera_image = self.webcam.get_image(edges=self.display_edges, tracker_box=self.game.tracking_mode == 'mosse')
         if self.display_edges:
             self.camera_image = cv2.cvtColor(self.camera_image, cv2.COLOR_GRAY2BGR)
         camera_surface = pygame.image.frombuffer(self.camera_image.tobytes(), self.camera_image.shape[1::-1], 'BGR')
@@ -152,3 +155,55 @@ class Gameplay(Scene):
         fps = f"FPS: {int(self.game.fps)}"
         text = self.font_small.render(fps, True, (255, 255, 255))
         self.window.display.blit(text, (20, 110))
+
+
+class Point2DSelection(Scene):
+    def __init__(self, game, webcam):
+        self.game = game
+        self.window = self.game.window
+        self.webcam = webcam
+
+        self.camera_image = None
+
+        self.text_size = None
+        self.font = None
+        self.update_overlay()
+
+        self.pos1 = None
+        self.pos2 = None
+
+    def update(self):
+        self.window.display.fill((0, 0, 0))
+        self.webcam.next_frame()
+        self.camera_image = self.webcam.get_image()
+        camera_surface = pygame.image.frombuffer(self.camera_image.tobytes(), self.camera_image.shape[1::-1], 'BGR')
+        camera_surface = pygame.transform.scale(camera_surface, self.window.get_size())
+        self.window.display.blit(camera_surface, (0, 0))
+        self.show_overlay()
+
+    def process_event(self, event):
+        if event.type == pygame.VIDEORESIZE:
+            self.update_overlay()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            pos = event.pos
+            window_size = self.window.get_size()
+            if self.pos1 is None:
+                self.pos1 = (pos[0] * self.webcam.w // window_size[0], pos[1] * self.webcam.h // window_size[1])
+            else:
+                self.pos2 = (pos[0] * self.webcam.w // window_size[0], pos[1] * self.webcam.h // window_size[1])
+                self.webcam.tracker_box = (self.pos1[0], self.pos1[1], self.pos2[0] - self.pos1[0], self.pos2[1] - self.pos1[1])
+                self.webcam.init_mosse()
+                self.game.scene = Gameplay(self.game, self.webcam)
+
+    def process_key(self, key):
+        if key == pygame.K_ESCAPE:
+            self.game.scene = MainMenu(self.game, self.webcam)
+
+    def update_overlay(self):
+        self.text_size = self.window.get_size()[1] // 30
+        self.font = pygame.font.Font(pygame.font.get_default_font(), self.text_size)
+
+    def show_overlay(self):
+        prompt = "Click the top left corner then bottom right corner of the object that should be tracked"
+        text = self.font.render(prompt, True, (255, 255, 255))
+        self.window.display.blit(text, (20, 20))
